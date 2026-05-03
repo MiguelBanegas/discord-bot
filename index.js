@@ -41,12 +41,14 @@ client.on('interactionCreate', async (interaction) => {
     const descriptionLines = [];
     if (timestampCode) descriptionLines.push(`**${timestampCode}**`);
     if (nota) descriptionLines.push(`**${nota}**`);
+    if (timestampCode || nota) descriptionLines.push("");
     descriptionLines.push(...Object.entries(listaRoles)
       .map(([num, rol]) => `**${num}. ${rol} - (vacante)**`));
-    if (notaInferior) descriptionLines.push(`**${notaInferior}**`);
+    if (notaInferior) descriptionLines.push("", `**${notaInferior}**`);
 
     const embed = new EmbedBuilder()
       .setTitle(titulo)
+      .setColor(0x1F8BFF)
       .setDescription(descriptionLines.join("\n"))
       .setFooter({ text: "Si queres cambiar de rol y ya estás inscripto en otro, liberalo primero escribiendo: 'Liberar + (Numero que queros liberar) Ejemplo: Liberar 2'." });
 
@@ -197,15 +199,17 @@ async function actualizarEmbed(parentMessage, data) {
   const descriptionLines = [];
   if (data.timestamp) descriptionLines.push(`**${data.timestamp}**`);
   if (data.nota) descriptionLines.push(`**${data.nota}**`);
+  if (data.timestamp || data.nota) descriptionLines.push("");
   descriptionLines.push(...Object.entries(data.roles)
     .map(([num, rol]) => {
       const jugador = data.jugadores[num];
       return `**${num}. ${rol} - ${jugador ? `<@${jugador.id}>` : "(vacante)"}**`;
     }));
-  if (data.notaInferior) descriptionLines.push(`**${data.notaInferior}**`);
+  if (data.notaInferior) descriptionLines.push("", `**${data.notaInferior}**`);
 
   const embed = new EmbedBuilder()
     .setTitle(data.titulo || "Inscripciones")
+    .setColor(0x1F8BFF)
     .setDescription(descriptionLines.join("\n"))
     .setFooter({ text: "Si queres cambiar de rol y ya estás inscripto en otro, liberalo primero escribiendo: 'Liberar + (Numero que queros liberar) Ejemplo: Liberar 2'." });
 
