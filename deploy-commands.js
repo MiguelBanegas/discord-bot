@@ -67,6 +67,10 @@ const commands = [
         .setDescription('Nueva nota')
         .setRequired(false))
     .addStringOption(opt =>
+      opt.setName('nota_inferior')
+        .setDescription('Nueva nota inferior')
+        .setRequired(false))
+    .addStringOption(opt =>
       opt.setName('roles')
         .setDescription('Lista de roles separados por coma')
         .setRequired(false))
