@@ -45,10 +45,17 @@ client.on('interactionCreate', async (interaction) => {
     const descriptionLines = [];
     if (utcTimestamp) {
       const utcTime = formatUtcTimeFromTimestamp(utcTimestamp);
-      descriptionLines.push(`**${utcTime} - <t:${utcTimestamp}:t>**`);
+      descriptionLines.push(`**Timmer: ${utcTime} - <t:${utcTimestamp}:t>**`);
     }
     if (utcTimestamp && nota) descriptionLines.push("");
     if (nota) descriptionLines.push(`**${nota}**`);
+
+    // Estado y conteo (al crear está vacío y abierto)
+    const totalRoles = Object.keys(listaRoles).length;
+    const occupied = 0;
+    const estado = 'Abierto';
+    if (nota) descriptionLines.push("");
+    descriptionLines.push(`**${estado} · ${occupied}/${totalRoles}**`);
     if (utcTimestamp || nota) descriptionLines.push("", "");
     descriptionLines.push(...Object.entries(listaRoles)
       .map(([num, rol]) => `${num}. **${rol.toUpperCase()}** - (Vacante)`));
@@ -216,10 +223,17 @@ async function actualizarEmbed(parentMessage, data) {
   const descriptionLines = [];
   if (data.utcTimestamp) {
     const utcTime = formatUtcTimeFromTimestamp(data.utcTimestamp);
-    descriptionLines.push(`**${utcTime} - <t:${data.utcTimestamp}:t>**`);
+    descriptionLines.push(`**Timmer: ${utcTime} - <t:${data.utcTimestamp}:t>**`);
   }
   if (data.utcTimestamp && data.nota) descriptionLines.push("");
   if (data.nota) descriptionLines.push(`**${data.nota}**`);
+
+  // Estado y conteo
+  const totalRoles = Object.keys(data.roles).length;
+  const occupied = Object.keys(data.jugadores).length;
+  const estado = data.cerrado ? 'Cerrado' : 'Abierto';
+  if (data.nota) descriptionLines.push("");
+  descriptionLines.push(`**${estado} · ${occupied}/${totalRoles}**`);
   if (data.utcTimestamp || data.nota) descriptionLines.push("", "");
   descriptionLines.push(...Object.entries(data.roles)
     .map(([num, rol]) => {
