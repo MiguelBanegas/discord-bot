@@ -26,10 +26,14 @@ client.on('interactionCreate', async (interaction) => {
     const cantidad = interaction.options.getInteger('cantidad');
     const rolesInput = interaction.options.getString('roles').split(",");
     const tagRol = interaction.options.getRole('tag');
-    const timestampCode = interaction.options.getString('timestamp');
+    const utcInput = interaction.options.getString('utc');
     const nota = interaction.options.getString('nota'); // nota superior
-  const notaInferior = interaction.options.getString('nota_inferior'); // nota inferior
+    const notaInferior = interaction.options.getString('nota_inferior'); // nota inferior
 
+    const utcTimestamp = utcInput ? parseUtcInput(utcInput) : null;
+    if (utcInput && !utcTimestamp) {
+      return interaction.reply("Formato UTC inválido. Usa YYYY-MM-DD HH:mm o YYYY-MM-DDTHH:mm.");
+    }
 
     if (rolesInput.length !== cantidad) {
       return interaction.reply("La cantidad de roles no coincide con el número indicado.");
@@ -39,9 +43,9 @@ client.on('interactionCreate', async (interaction) => {
     rolesInput.forEach((rol, i) => listaRoles[i+1] = rol.trim());
 
     const descriptionLines = [];
-    if (timestampCode) descriptionLines.push(`**${timestampCode}**`);
+    if (utcTimestamp) descriptionLines.push(`**UTC: <t:${utcTimestamp}:f>**`);
     if (nota) descriptionLines.push(`**${nota}**`);
-    if (timestampCode || nota) descriptionLines.push("", "");
+    if (utcTimestamp || nota) descriptionLines.push("", "");
     descriptionLines.push(...Object.entries(listaRoles)
       .map(([num, rol]) => `${num}. ${rol} - (Vacante)`));
     if (notaInferior) descriptionLines.push("", `**${notaInferior}**`);
@@ -63,16 +67,16 @@ client.on('interactionCreate', async (interaction) => {
 
     await sentMessage.startThread({ name: "Inscripciones", autoArchiveDuration: 60 });
 
-    inscripciones[sentMessage.id] = { 
-     titulo,
-    roles: listaRoles, 
-    jugadores: {}, 
-    creador: interaction.user.id, 
-    cerrado: false,
-    timestamp: timestampCode,
-    nota,
-    notaInferior
-};
+    inscripciones[sentMessage.id] = {
+      titulo,
+      roles: listaRoles,
+      jugadores: {},
+      creador: interaction.user.id,
+      cerrado: false,
+      utcTimestamp,
+      nota,
+      notaInferior
+    };
 
   }
 
@@ -81,25 +85,30 @@ client.on('interactionCreate', async (interaction) => {
   // =========================
   if (interaction.commandName === 'editar_inscripcion') {
     const mensajeId = interaction.options.getString('mensaje_id');
-     const nuevoTitulo = interaction.options.getString('titulo');
-     const nuevoTimestamp = interaction.options.getString('timestamp');
-     const nuevaNota = interaction.options.getString('nota');
-      const nuevaNotaInferior = interaction.options.getString('nota_inferior'); // ✅ nueva opción
-     const rolesInput = interaction.options.getString('roles');
-     const cantidad = interaction.options.getInteger('cantidad');
+    const nuevoTitulo = interaction.options.getString('titulo');
+    const nuevoUtcInput = interaction.options.getString('utc');
+    const nuevaNota = interaction.options.getString('nota');
+    const nuevaNotaInferior = interaction.options.getString('nota_inferior'); // ✅ nueva opción
+    const rolesInput = interaction.options.getString('roles');
+    const cantidad = interaction.options.getInteger('cantidad');
 
-     const insc = inscripciones[mensajeId];
-  if (!insc) return interaction.reply("No encontré esa inscripción.");
-  if (interaction.user.id !== insc.creador) {
-    return interaction.reply("Solo el creador puede editar esta inscripción.");
-  }
+    const insc = inscripciones[mensajeId];
+    if (!insc) return interaction.reply("No encontré esa inscripción.");
+    if (interaction.user.id !== insc.creador) {
+      return interaction.reply("Solo el creador puede editar esta inscripción.");
+    }
 
-  // Actualizar datos
-  if (nuevoTitulo) insc.titulo = nuevoTitulo;
-  if (nuevoTimestamp) insc.timestamp = nuevoTimestamp;
-  if (nuevaNota) insc.nota = nuevaNota;
-  if (nuevaNotaInferior) insc.notaInferior = nuevaNotaInferior; // ✅ actualiza nota inferior
-  if (rolesInput && cantidad) {
+    const nuevoUtcTimestamp = nuevoUtcInput ? parseUtcInput(nuevoUtcInput) : null;
+    if (nuevoUtcInput && !nuevoUtcTimestamp) {
+      return interaction.reply("Formato UTC inválido. Usa YYYY-MM-DD HH:mm o YYYY-MM-DDTHH:mm.");
+    }
+
+    // Actualizar datos
+    if (nuevoTitulo) insc.titulo = nuevoTitulo;
+    if (nuevoUtcInput) insc.utcTimestamp = nuevoUtcTimestamp;
+    if (nuevaNota) insc.nota = nuevaNota;
+    if (nuevaNotaInferior) insc.notaInferior = nuevaNotaInferior; // ✅ actualiza nota inferior
+    if (rolesInput && cantidad) {
     const rolesArray = rolesInput.split(",");
     if (rolesArray.length !== cantidad) {
       return interaction.reply("La cantidad de roles no coincide con el número indicado.");
@@ -197,9 +206,9 @@ client.on('messageCreate', async (message) => {
 
 async function actualizarEmbed(parentMessage, data) {
   const descriptionLines = [];
-  if (data.timestamp) descriptionLines.push(`**${data.timestamp}**`);
+  if (data.utcTimestamp) descriptionLines.push(`**UTC: <t:${data.utcTimestamp}:f>**`);
   if (data.nota) descriptionLines.push(`**${data.nota}**`);
-  if (data.timestamp || data.nota) descriptionLines.push("", "");
+  if (data.utcTimestamp || data.nota) descriptionLines.push("", "");
   descriptionLines.push(...Object.entries(data.roles)
     .map(([num, rol]) => {
       const jugador = data.jugadores[num];
@@ -214,6 +223,16 @@ async function actualizarEmbed(parentMessage, data) {
     .setFooter({ text: "Para pickear un rol, escribe el número correspondiente, si te equivocaste o queres cambiar de rol, deberás escribir: 'Liberar X(Numero que escogiste)'." });
 
   await parentMessage.edit({ embeds: [embed] });
+}
+
+function parseUtcInput(input) {
+  const normalized = input.trim().replace(/\s+/, 'T');
+  const isoMatch = normalized.match(/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2})?)?$/);
+  if (!isoMatch) return null;
+
+  const date = new Date(`${normalized}Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  return Math.floor(date.getTime() / 1000);
 }
 
 client.login(process.env.TOKEN);
