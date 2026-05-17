@@ -51,7 +51,7 @@ client.on('interactionCreate', async (interaction) => {
     if (nota) descriptionLines.push(`**${nota}**`);
     if (utcTimestamp || nota) descriptionLines.push("", "");
     descriptionLines.push(...Object.entries(listaRoles)
-      .map(([num, rol]) => `${num}. ${rol} - (Vacante)`));
+      .map(([num, rol]) => `${num}. **${rol.toUpperCase()}** - (Vacante)`));
     if (notaInferior) descriptionLines.push("", `**${notaInferior}**`);
 
     const embed = new EmbedBuilder()
@@ -224,7 +224,7 @@ async function actualizarEmbed(parentMessage, data) {
   descriptionLines.push(...Object.entries(data.roles)
     .map(([num, rol]) => {
       const jugador = data.jugadores[num];
-      return `${num}. ${rol} - ${jugador ? `<@${jugador.id}>` : "(Vacante)"}`;
+      return `${num}. **${rol.toUpperCase()}** - ${jugador ? `<@${jugador.id}>` : "(Vacante)"}`;
     }));
   if (data.notaInferior) descriptionLines.push("", `**${data.notaInferior}**`);
 
