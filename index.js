@@ -18,95 +18,96 @@ client.once('ready', () => {
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  // =========================
-  // CREAR INSCRIPCIONES
-  // =========================
-  if (interaction.commandName === 'inscripciones') {
-    const titulo = interaction.options.getString('titulo');
-    const cantidad = interaction.options.getInteger('cantidad');
-    const rolesInput = interaction.options.getString('roles').split(",");
-    const tagRol = interaction.options.getRole('tag');
-    const utcInput = interaction.options.getString('utc');
-    const nota = interaction.options.getString('nota'); 
-    const notaInferior = interaction.options.getString('nota_inferior'); 
+// =========================
+// CREAR INSCRIPCIONES
+// =========================
+if (interaction.commandName === 'inscripciones') {
+  await interaction.deferReply(); // ✅ evita timeout
 
-    const utcTimestamp = utcInput ? parseUtcInput(utcInput) : null;
-    if (utcInput && !utcTimestamp) {
-      return interaction.reply("Formato UTC inválido. Usa YYYY-MM-DD HH:mm o YYYY-MM-DDTHH:mm.");
-    }
+  const titulo = interaction.options.getString('titulo');
+  const cantidad = interaction.options.getInteger('cantidad');
+  const rolesInput = interaction.options.getString('roles').split(",");
+  const tagRol = interaction.options.getRole('tag');
+  const utcInput = interaction.options.getString('utc');
+  const nota = interaction.options.getString('nota'); 
+  const notaInferior = interaction.options.getString('nota_inferior'); 
 
-    if (rolesInput.length !== cantidad) {
-      return interaction.reply("La cantidad de roles no coincide con el número indicado.");
-    }
-
-    let listaRoles = {};
-    rolesInput.forEach((rol, i) => listaRoles[i+1] = rol.trim());
-
-    const descriptionLines = [];
-    if (utcTimestamp) {
-      const utcTime = formatUtcTimeFromTimestamp(utcTimestamp);
-      descriptionLines.push(`**Timmer: ${utcTime} - <t:${utcTimestamp}:t>**`);
-    }
-    if (utcTimestamp && nota) descriptionLines.push("");
-    if (nota) descriptionLines.push(`**${nota}**`);
-
-    const totalRoles = Object.keys(listaRoles).length;
-    const occupied = 0;
-    const estado = 'Abierto';
-    if (nota) descriptionLines.push("");
-
-    const embed = new EmbedBuilder()
-      .setTitle(`\u200B${titulo}\u200B`)
-      .setColor(0x1F8BFF)
-      .setDescription(descriptionLines.join("\n"))
-      .setFooter({ text: "Para pickear un rol, escribe el número correspondiente, si te equivocaste o queres cambiar de rol, deberás escribir: 'Liberar X(Numero que escogiste)'." });
-
-    embed.addFields(
-      { name: '\u200B', value: '\u200B', inline: false },
-      { name: 'Estado', value: `**${estado}**`, inline: true },
-      { name: '\u200B', value: '\u200B', inline: true },
-      { name: 'Cupos', value: `**${occupied}/${totalRoles}**`, inline: true },
-    );
-    // Dividir roles en partidas de 20
-    const rolesArray = Object.entries(listaRoles);
-    const rolesPerParty = 20;
-    for (let i = 0; i < rolesArray.length; i += rolesPerParty) {
-      const partyNum = Math.floor(i / rolesPerParty) + 1;
-      const partyRoles = rolesArray.slice(i, i + rolesPerParty)
-        .map(([num, rol]) => `${num}. **${rol.toUpperCase()} - (Vacante)**`).join("\n");
-      embed.addFields({ name: `Party ${partyNum}`, value: partyRoles, inline: false });
-    }
-    if (notaInferior) {
-      embed.addFields({ name: '\u200B', value: `**${notaInferior}**`, inline: false });
-    }
-
-    const content = tagRol ? `<@&${tagRol.id}>` : undefined;
-    const replyOptions = {
-      embeds: [embed],
-      fetchReply: true
-    };
-    if (tagRol) {
-      replyOptions.content = content;
-      replyOptions.allowedMentions = { roles: [tagRol.id] };
-    }
-
-    const sentMessage = await interaction.reply(replyOptions);
-
-    await sentMessage.startThread({ name: "Inscripciones", autoArchiveDuration: 60 });
-
-    inscripciones[sentMessage.id] = {
-      titulo,
-      roles: listaRoles,
-      jugadores: {},
-      creador: interaction.user.id,
-      cerrado: false,
-      utcInput,
-      utcTimestamp,
-      nota,
-      notaInferior
-    };
-
+  const utcTimestamp = utcInput ? parseUtcInput(utcInput) : null;
+  if (utcInput && !utcTimestamp) {
+    return interaction.editReply("Formato UTC inválido. Usa YYYY-MM-DD HH:mm o YYYY-MM-DDTHH:mm.");
   }
+
+  if (rolesInput.length !== cantidad) {
+    return interaction.editReply("La cantidad de roles no coincide con el número indicado.");
+  }
+
+  let listaRoles = {};
+  rolesInput.forEach((rol, i) => listaRoles[i+1] = rol.trim());
+
+  const descriptionLines = [];
+  if (utcTimestamp) {
+    const utcTime = formatUtcTimeFromTimestamp(utcTimestamp);
+    descriptionLines.push(`**Timmer: ${utcTime} - <t:${utcTimestamp}:t>**`);
+  }
+  if (nota) descriptionLines.push(`**${nota}**`);
+
+  const totalRoles = Object.keys(listaRoles).length;
+  const occupied = 0;
+  const estado = 'Abierto';
+
+  // ✅ Evitar descripción vacía
+  const desc = descriptionLines.length > 0 ? descriptionLines.join("\n") : " ";
+
+  const embed = new EmbedBuilder()
+    .setTitle(`\u200B${titulo}\u200B`)
+    .setColor(0x1F8BFF)
+    .setDescription(desc)
+    .setFooter({ 
+      text: "Para pickear un rol, escribe el número correspondiente, si te equivocaste o queres cambiar de rol, deberás escribir: 'Liberar X(Numero que escogiste)'." 
+    });
+
+  embed.addFields(
+    { name: '\u200B', value: '\u200B', inline: false },
+    { name: 'Estado', value: `**${estado}**`, inline: true },
+    { name: '\u200B', value: '\u200B', inline: true },
+    { name: 'Cupos', value: `**${occupied}/${totalRoles}**`, inline: true },
+  );
+
+  // Dividir roles en partidas de 20
+  const rolesArray = Object.entries(listaRoles);
+  const rolesPerParty = 20;
+  for (let i = 0; i < rolesArray.length; i += rolesPerParty) {
+    const partyNum = Math.floor(i / rolesPerParty) + 1;
+    const partyRoles = rolesArray.slice(i, i + rolesPerParty)
+      .map(([num, rol]) => `${num}. **${rol.toUpperCase()} - (Vacante)**`).join("\n");
+    embed.addFields({ name: `Party ${partyNum}`, value: partyRoles, inline: false });
+  }
+  if (notaInferior) {
+    embed.addFields({ name: '\u200B', value: `**${notaInferior}**`, inline: false });
+  }
+
+  // ✅ Usar editReply en lugar de replyOptions + fetchReply
+  const sentMessage = await interaction.editReply({
+    content: tagRol ? `<@&${tagRol.id}>` : undefined,
+    embeds: [embed],
+    allowedMentions: tagRol ? { roles: [tagRol.id] } : undefined
+  });
+
+  await sentMessage.startThread({ name: "Inscripciones", autoArchiveDuration: 60 });
+
+  inscripciones[sentMessage.id] = {
+    titulo,
+    roles: listaRoles,
+    jugadores: {},
+    creador: interaction.user.id,
+    cerrado: false,
+    utcInput,
+    utcTimestamp,
+    nota,
+    notaInferior
+  };
+}
+
 
   // =========================
   // EDITAR INSCRIPCIONES
