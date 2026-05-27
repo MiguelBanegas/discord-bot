@@ -39,7 +39,7 @@ async function guardarDatos() {
   }
 }
 
-client.on('ready', () => {
+client.once('ready', () => {
   console.log(`Bot iniciado como ${client.user.tag}`);
 });
 
@@ -50,6 +50,8 @@ client.on('interactionCreate', async (interaction) => {
   // CREAR INSCRIPCIONES
   // =========================
   if (interaction.commandName === 'inscripciones') {
+    await interaction.deferReply(); // evita timeout
+
     const titulo = interaction.options.getString('titulo');
     const cantidad = interaction.options.getInteger('cantidad');
     const rolesInput = interaction.options.getString('roles').split(",");
@@ -60,11 +62,11 @@ client.on('interactionCreate', async (interaction) => {
 
     const utcTimestamp = utcInput ? parseUtcInput(utcInput) : null;
     if (utcInput && !utcTimestamp) {
-      return interaction.reply("Formato UTC inválido. Usa YYYY-MM-DD HH:mm o YYYY-MM-DDTHH:mm.");
+      return interaction.editReply("Formato UTC inválido. Usa YYYY-MM-DD HH:mm o YYYY-MM-DDTHH:mm.");
     }
 
     if (rolesInput.length !== cantidad) {
-      return interaction.reply("La cantidad de roles no coincide con el número indicado.");
+      return interaction.editReply("La cantidad de roles no coincide con el número indicado.");
     }
 
     let listaRoles = {};
@@ -75,19 +77,22 @@ client.on('interactionCreate', async (interaction) => {
       const utcTime = formatUtcTimeFromTimestamp(utcTimestamp);
       descriptionLines.push(`**Timmer: ${utcTime} - <t:${utcTimestamp}:t>**`);
     }
-    if (utcTimestamp && nota) descriptionLines.push("");
     if (nota) descriptionLines.push(`**${nota}**`);
 
     const totalRoles = Object.keys(listaRoles).length;
     const occupied = 0;
     const estado = 'Abierto';
-    if (nota) descriptionLines.push("");
+
+    // Evitar descripción vacía
+    const desc = descriptionLines.length > 0 ? descriptionLines.join("\n") : " ";
 
     const embed = new EmbedBuilder()
       .setTitle(`\u200B${titulo}\u200B`)
       .setColor(0x1F8BFF)
-      .setDescription(descriptionLines.join("\n"))
-      .setFooter({ text: "Para pickear un rol, escribe el número correspondiente, si te equivocaste o queres cambiar de rol, deberás escribir: 'Liberar X(Numero que escogiste)'." });
+      .setDescription(desc)
+      .setFooter({ 
+        text: "Para pickear un rol, escribe el número correspondiente, si te equivocaste o queres cambiar de rol, deberás escribir: 'Liberar X(Numero que escogiste)'." 
+      });
 
     embed.addFields(
       { name: '\u200B', value: '\u200B', inline: false },
@@ -108,15 +113,11 @@ client.on('interactionCreate', async (interaction) => {
       embed.addFields({ name: '\u200B', value: `**${notaInferior}**`, inline: false });
     }
 
-    const content = tagRol ? `<@&${tagRol.id}>` : undefined;
-    const replyOptions = { embeds: [embed] };
-    if (tagRol) {
-      replyOptions.content = content;
-      replyOptions.allowedMentions = { roles: [tagRol.id] };
-    }
-
-    await interaction.reply(replyOptions);
-    const sentMessage = await interaction.fetchReply();
+    const sentMessage = await interaction.editReply({
+      content: tagRol ? `<@&${tagRol.id}>` : undefined,
+      embeds: [embed],
+      allowedMentions: tagRol ? { roles: [tagRol.id] } : undefined
+    });
 
     await sentMessage.startThread({ name: "Inscripciones", autoArchiveDuration: 60 });
 
@@ -132,7 +133,6 @@ client.on('interactionCreate', async (interaction) => {
       notaInferior
     };
     guardarDatos();
-
   }
 
   // =========================
