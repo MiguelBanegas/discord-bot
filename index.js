@@ -39,7 +39,7 @@ async function guardarDatos() {
   }
 }
 
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`Bot iniciado como ${client.user.tag}`);
 });
 
@@ -75,7 +75,7 @@ client.on('interactionCreate', async (interaction) => {
     const descriptionLines = [];
     if (utcTimestamp) {
       const utcTime = formatUtcTimeFromTimestamp(utcTimestamp);
-      descriptionLines.push(`**Timmer: ${utcTime} - <t:${utcTimestamp}:t>**`);
+      descriptionLines.push(`**Timer: ${utcTime} - <t:${utcTimestamp}:t>**`);
     }
     if (nota) descriptionLines.push(`**${nota}**`);
 
@@ -84,7 +84,7 @@ client.on('interactionCreate', async (interaction) => {
     const estado = 'Abierto';
 
     // Evitar descripción vacía
-    const desc = descriptionLines.length > 0 ? descriptionLines.join("\n") : " ";
+    /* const desc = descriptionLines.length > 0 ? descriptionLines.join("\n") : " ";
 
     const embed = new EmbedBuilder()
       .setTitle(`\u200B${titulo}\u200B`)
@@ -92,8 +92,17 @@ client.on('interactionCreate', async (interaction) => {
       .setDescription(desc)
       .setFooter({ 
         text: "Para pickear un rol, escribe el número correspondiente, si te equivocaste o queres cambiar de rol, deberás escribir: 'Liberar X(Numero que escogiste)'." 
-      });
+      }); */
+    const embed = new EmbedBuilder()
+  .setTitle(`\u200B${titulo}\u200B`)
+  .setColor(0x1F8BFF)
+  .setFooter({
+    text: "Para pickear un rol, escribe el número correspondiente, si te equivocaste o queres cambiar de rol, deberás escribir: 'Liberar X (Número que escogiste)'."
+  });
 
+if (descriptionLines.length > 0) {
+  embed.setDescription(descriptionLines.join("\n"));
+}
     embed.addFields(
       { name: '\u200B', value: '\u200B', inline: false },
       { name: 'Estado', value: `**${estado}**`, inline: true },
@@ -280,7 +289,7 @@ async function actualizarEmbed(parentMessage, data) {
   const descriptionLines = [];
   if (data.utcTimestamp) {
     const utcTime = formatUtcTimeFromTimestamp(data.utcTimestamp);
-    descriptionLines.push(`**Timmer: ${utcTime} - <t:${data.utcTimestamp}:t>**`);
+    descriptionLines.push(`**Timer: ${utcTime} - <t:${data.utcTimestamp}:t>**`);
   }
   if (data.utcTimestamp && data.nota) descriptionLines.push("");
   if (data.nota) descriptionLines.push(`**${data.nota}**`);
@@ -290,12 +299,22 @@ async function actualizarEmbed(parentMessage, data) {
   const estado = data.cerrado ? 'Cerrado' : 'Abierto';
   if (data.nota) descriptionLines.push("");
 
-  const embed = new EmbedBuilder()
+  /* const embed = new EmbedBuilder()
     .setTitle(`\u200B${data.titulo || "Inscripciones"}\u200B`)
     .setColor(0x1F8BFF)
     .setDescription(descriptionLines.join("\n"))
     .setFooter({ text: "Para pickear un rol, escribe el número correspondiente, si te equivocaste o queres cambiar de rol, deberás escribir: 'Liberar X(Numero que escogiste)'." });
+ */
+const embed = new EmbedBuilder()
+  .setTitle(`\u200B${data.titulo || "Inscripciones"}\u200B`)
+  .setColor(0x1F8BFF)
+  .setFooter({
+    text: "Para pickear un rol, escribe el número correspondiente, si te equivocaste o queres cambiar de rol, deberás escribir: 'Liberar X (Número que escogiste)'."
+  });
 
+if (descriptionLines.length > 0) {
+  embed.setDescription(descriptionLines.join("\n"));
+}
   embed.addFields(
     { name: '\u200B', value: '\u200B', inline: false },
     { name: 'Estado', value: `**${estado}**`, inline: true },
