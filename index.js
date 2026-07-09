@@ -2,6 +2,8 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const fs = require('node:fs/promises');
 const { existsSync, readFileSync } = require('node:fs');
+const fs = require('node:fs/promises');
+const { existsSync, readFileSync } = require('node:fs');
 
 const client = new Client({
   intents: [
@@ -14,8 +16,35 @@ const client = new Client({
 const PATH_ARCHIVO = './inscripciones.txt';
 
 // Cargar datos al iniciar
+const PATH_ARCHIVO = './inscripciones.txt';
+
+// Cargar datos al iniciar
 let inscripciones = {};
 
+function cargarDatos() {
+  if (existsSync(PATH_ARCHIVO)) {
+    try {
+      const data = readFileSync(PATH_ARCHIVO, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      console.error("Error al leer el archivo de inscripciones:", error);
+      return {};
+    }
+  }
+  return {};
+}
+
+inscripciones = cargarDatos();
+
+async function guardarDatos() {
+  try {
+    await fs.writeFile(PATH_ARCHIVO, JSON.stringify(inscripciones, null, 2), 'utf8');
+  } catch (error) {
+    console.error("Error al guardar el archivo de inscripciones:", error);
+  }
+}
+
+client.once('clientReady', () => {
 function cargarDatos() {
   if (existsSync(PATH_ARCHIVO)) {
     try {
@@ -52,6 +81,8 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.commandName === 'inscripciones') {
     await interaction.deferReply(); // evita timeout
 
+    await interaction.deferReply(); // evita timeout
+
     const titulo = interaction.options.getString('titulo');
     const cantidad = interaction.options.getInteger('cantidad');
     const rolesInput = interaction.options.getString('roles').split(",");
@@ -63,9 +94,11 @@ client.on('interactionCreate', async (interaction) => {
     const utcTimestamp = utcInput ? parseUtcInput(utcInput) : null;
     if (utcInput && !utcTimestamp) {
       return interaction.editReply("Formato UTC inválido. Usa YYYY-MM-DD HH:mm o YYYY-MM-DDTHH:mm.");
+      return interaction.editReply("Formato UTC inválido. Usa YYYY-MM-DD HH:mm o YYYY-MM-DDTHH:mm.");
     }
 
     if (rolesInput.length !== cantidad) {
+      return interaction.editReply("La cantidad de roles no coincide con el número indicado.");
       return interaction.editReply("La cantidad de roles no coincide con el número indicado.");
     }
 
@@ -76,12 +109,16 @@ client.on('interactionCreate', async (interaction) => {
     if (utcTimestamp) {
       const utcTime = formatUtcTimeFromTimestamp(utcTimestamp);
       descriptionLines.push(`**Timer: ${utcTime} - <t:${utcTimestamp}:t>**`);
+      descriptionLines.push(`**Timer: ${utcTime} - <t:${utcTimestamp}:t>**`);
     }
     if (nota) descriptionLines.push(`**${nota}**`);
 
     const totalRoles = Object.keys(listaRoles).length;
     const occupied = 0;
     const estado = 'Abierto';
+
+    // Evitar descripción vacía
+    /* const desc = descriptionLines.length > 0 ? descriptionLines.join("\n") : " ";
 
     // Evitar descripción vacía
     /* const desc = descriptionLines.length > 0 ? descriptionLines.join("\n") : " ";
@@ -99,7 +136,20 @@ client.on('interactionCreate', async (interaction) => {
   .setFooter({
     text: "Para pickear un rol, escribe el número correspondiente, si te equivocaste o queres cambiar de rol, deberás escribir: 'Liberar X (Número que escogiste)'."
   });
+      .setDescription(desc)
+      .setFooter({ 
+        text: "Para pickear un rol, escribe el número correspondiente, si te equivocaste o queres cambiar de rol, deberás escribir: 'Liberar X(Numero que escogiste)'." 
+      }); */
+    const embed = new EmbedBuilder()
+  .setTitle(`\u200B${titulo}\u200B`)
+  .setColor(0x1F8BFF)
+  .setFooter({
+    text: "Para pickear un rol, escribe el número correspondiente, si te equivocaste o queres cambiar de rol, deberás escribir: 'Liberar X (Número que escogiste)'."
+  });
 
+if (descriptionLines.length > 0) {
+  embed.setDescription(descriptionLines.join("\n"));
+}
 if (descriptionLines.length > 0) {
   embed.setDescription(descriptionLines.join("\n"));
 }
